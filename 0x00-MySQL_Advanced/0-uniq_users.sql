@@ -4,8 +4,7 @@
 -- name, string (255 characters)
 
 CREATE TABLE IF NOT EXISTS `users`(
-	id INT NOT NULL AUTO_INCREMENT,
+	id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	email varchar(255) NOT NULL UNIQUE,
-	name varchar(255),
-	PRIMARY KEY (id)
+	name varchar(255)
 );
