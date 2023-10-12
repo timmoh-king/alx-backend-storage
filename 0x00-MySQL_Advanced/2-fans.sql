@@ -12,4 +12,3 @@ ORDER BY total_fans DESC;
 
 -- Clean up the temporary table
 DROP TEMPORARY TABLE band_rankings;
-
