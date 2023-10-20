@@ -24,7 +24,12 @@ print("{} logs".format(my_nginx.count_documents({})))
 for method in methods:
     print(
             "\tmethod {}: {}".format(
-                method, my_nginx.count_documents("method": method))
+                method, my_nginx.count_documents({"method": method}))
+            )
+    print(
+            "{} status check".format(
+                my_nginx.count_documents({"method": "GET", "path": "/status"})
+                )
             )
 
 
