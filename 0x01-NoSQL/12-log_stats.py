@@ -21,6 +21,7 @@ my_nginx = my_database['nginx']
 
 print("{} logs".format(my_nginx.count_documents({})))
 
+print("Methods:")
 for method in methods:
     print(
             "\tmethod {}: {}".format(
