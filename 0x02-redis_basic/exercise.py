@@ -12,6 +12,16 @@ from typing import Union, Callable, Any
 from functools import wraps
 
 
+def count_calls(method: Callable):
+    """define a count_calls decorator that takes a single"""
+    @wraps(method)
+    def wrapper(self, *args, **kwargs):
+        key = f"call_count:{method.__qualname__}"
+        self._redis.incr(key)
+        return method(self, *args, **kwargs)
+    return wrapper
+
+
 def call_history(method: Callable):
     """define a call_history decorator that takes a callable arg"""
     @wraps(method)
@@ -30,16 +40,6 @@ def call_history(method: Callable):
             self._redis.rpush(outputs, method_return)
 
         return method_return
-    return wrapper
-
-
-def count_calls(method: Callable):
-    """define a count_calls decorator that takes a single"""
-    @wraps(method)
-    def wrapper(self, *args, **kwargs):
-        key = f"call_count:{method.__qualname__}"
-        self._redis.incr(key)
-        return method(self, *args, **kwargs)
     return wrapper
 
 
