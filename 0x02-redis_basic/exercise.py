@@ -14,7 +14,7 @@ from functools import wraps
 
 def count_calls(method: Callable):
     """define a count_calls decorator that takes a single"""
-    @wrap(method)
+    @wraps(method)
     def wrapper(self, *args, **kwargs):
         key = f"call_count:{method.__qualname__}"
         self._redis.incr(key)
