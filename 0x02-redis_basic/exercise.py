@@ -22,15 +22,15 @@ def call_history(method: Callable):
         inputs = '{}:inputs'.format(method.__qualname__)
         outputs = '{}:outputs'.format(method.__qualname__)
 
-    if isinstance(self._redis, redis.Redis):
-        self._redis.rpush(inputs, str(args))
-    method_return = method(self, *args, **kwargs)
+        if isinstance(self._redis, redis.Redis):
+            self._redis.rpush(inputs, str(args))
+        method_return = method(self, *args, **kwargs)
 
-    if isinstance(self._redis, redis.Redis):
-        self._redis.rpush(outputs, method_return)
+        if isinstance(self._redis, redis.Redis):
+            self._redis.rpush(outputs, method_return)
 
-    return method_return
-return wrapper
+        return method_return
+    return wrapper
 
 
 def count_calls(method: Callable):
