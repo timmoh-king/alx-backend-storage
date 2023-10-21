@@ -49,8 +49,6 @@ class Cache:
         self._redis = redis.Redis()
         self._redis.flushdb()
         self.call_count = 0
-        self.inputs = []
-        self.outputs = []
 
     def total_calls(self):
         """return the call count"""
