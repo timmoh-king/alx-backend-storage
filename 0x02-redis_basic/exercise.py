@@ -9,16 +9,33 @@
 import redis
 import uuid
 from typing import Union, Callable
+from functools import wraps
 
+
+def count_calls(method: Callable):
+    """define a count_calls decorator that takes a single"""
+    @wrap(method)
+    def wrapper(self, *args, **kwargs):
+        key = f"call_count:{method.__qualname__}"
+        self._redis.incr(key)
+        return method(self, *args, **kwargs)
+    return wrapper
 
 class Cache:
     """define class attributes"""
     def __init__(self):
         self._redis = redis.Redis()
         self._redis.flushdb()
+        self.call_count = 0
+
+    def total_calls(self):
+        """return the call count"""
+        return self.call_count
 
     def store(self, data: Union[str, bytes, int, float]) -> str:
         """method that takes a data argument and returns a string"""
+        self.call_count += 1
+
         key = str(uuid.uuid4())
         self._redis.set(key, data)
         return key
