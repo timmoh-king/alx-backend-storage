@@ -8,13 +8,29 @@
 
 import redis
 import uuid
-from typing import Union, Callable
+from typing import Union, Callable, Any
 from functools import wraps
 
 
 def call_history(method: Callable):
     """define a call_history decorator that takes a callable arg"""
-    pass
+    @wraps(method)
+    def wrapper(self, *args, **kwargs) -> Any:
+        """
+            stores methods and return args and output
+        """
+        inputs = '{}:inputs'.format(method.__qualname__)
+        outputs = '{}:outputs'.format(method.__qualname__)
+
+    if isinstance(self._redis, redis.Redis):
+        self._redis.rpush(inputs, str(args))
+    method_return = method(self, *args, **kwargs)
+
+    if isinstance(self._redis, redis.Redis):
+        self._redis.rpush(outputs, method_return)
+
+    return method_return
+return wrapper
 
 
 def count_calls(method: Callable):
@@ -33,6 +49,8 @@ class Cache:
         self._redis = redis.Redis()
         self._redis.flushdb()
         self.call_count = 0
+        self.inputs = []
+        self.outputs = []
 
     def total_calls(self):
         """return the call count"""
