@@ -12,6 +12,11 @@ from typing import Union, Callable
 from functools import wraps
 
 
+def call_history(method: Callable):
+    """define a call_history decorator that takes a callable arg"""
+    pass
+
+
 def count_calls(method: Callable):
     """define a count_calls decorator that takes a single"""
     @wraps(method)
@@ -20,6 +25,7 @@ def count_calls(method: Callable):
         self._redis.incr(key)
         return method(self, *args, **kwargs)
     return wrapper
+
 
 class Cache:
     """define class attributes"""
