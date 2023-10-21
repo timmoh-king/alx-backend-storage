@@ -8,7 +8,7 @@
 
 import redis
 import uuid
-from typing import Union
+from typing import Union, Callable
 
 
 class Cache:
@@ -22,3 +22,25 @@ class Cache:
         key = str(uuid.uuid4())
         self._redis.set(key, data)
         return key
+
+    def get(self, key: str, fn: Callable = None) -> Union[str, bytes, int, float, None]:
+        """
+             The callable will be used to convert the data back to the desired form
+        """
+        data = self._redis.get(key)
+
+        if data is not None and fn is not None:
+            data = fn(data)
+        return data
+
+    def get_int(self):
+        """
+            automatically parametrize Cache.get with the correct conversion fn
+        """
+        return self.get(key, fn = lambda x: int(x) if x is not None else None)
+
+    def get_str(self):
+        """
+            automatically parametrize Cache.get with the correct conversion fn
+        """
+        return self.get(key, fn = lambda x: x.decode('utf-8'))
