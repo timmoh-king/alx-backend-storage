@@ -1,85 +1,105 @@
 #!/usr/bin/env python3
-
+"""A module for using the Redis NoSQL data storage.
 """
-    Create a Cache class. In the __init__ method
-    store an instance of the Redis client as a private variable named _redis
-    (using redis.Redis()) and flush the instance using flushdb.
-"""
-
-import redis
 import uuid
-from typing import Union, Callable, Any
+import redis
 from functools import wraps
+from typing import Any, Callable, Union
 
 
-def count_calls(method: Callable):
-    """define a count_calls decorator that takes a single"""
+def count_calls(method: Callable) -> Callable:
+    """Decorator Function to Count Calls
+    """
     @wraps(method)
-    def wrapper(self, *args, **kwargs):
-        key = f"call_count:{method.__qualname__}"
-        self._redis.incr(key)
-        return method(self, *args, **kwargs)
-    return wrapper
-
-
-def call_history(method: Callable):
-    """define a call_history decorator that takes a callable arg"""
-    @wraps(method)
-    def wrapper(self, *args, **kwargs) -> Any:
+    def invoker(self, *args, **kwargs) -> Any:
+        """Wrapper function to call and count method passed
         """
-            stores methods and return args and output
+        if isinstance(self._redis, redis.Redis):
+            self._redis.incr(method.__qualname__)
+        return method(self, *args, **kwargs)
+    return invoker
+
+
+def call_history(method: Callable) -> Callable:
+    """Call History Decorator Function.
+    """
+    @wraps(method)
+    def invoker(self, *args, **kwargs) -> Any:
+        """Stores Method returns and arguments and returns its output.
         """
         inputs = '{}:inputs'.format(method.__qualname__)
         outputs = '{}:outputs'.format(method.__qualname__)
-
         if isinstance(self._redis, redis.Redis):
             self._redis.rpush(inputs, str(args))
         method_return = method(self, *args, **kwargs)
-
         if isinstance(self._redis, redis.Redis):
             self._redis.rpush(outputs, method_return)
-
         return method_return
-    return wrapper
+    return invoker
+
+
+def replay(fn: Callable) -> None:
+    """Displays the call history.
+    """
+    if fn is None or not hasattr(fn, '__self__'):
+        return
+    redis_store = getattr(fn.__self__, '_redis', None)
+    if not isinstance(redis_store, redis.Redis):
+        return
+    function_name = fn.__qualname__
+    inputs = '{}:inputs'.format(function_name)
+    outputs = '{}:outputs'.format(function_name)
+    function_call_count = 0
+    if redis_store.exists(function_name) != 0:
+        function_call_count = int(redis_store.get(function_name))
+    print('{} was called {} times:'.format(function_name, function_call_count))
+    function_inputs = redis_store.lrange(inputs, 0, -1)
+    function_outputs = redis_store.lrange(outputs, 0, -1)
+    for function_input, function_output in zip(
+            function_inputs,
+            function_outputs):
+        print('{}(*{}) -> {}'.format(
+            function_name,
+            function_input.decode("utf-8"),
+            function_output,
+        ))
 
 
 class Cache:
-    """define class attributes"""
-    def __init__(self):
+    """Object to help in adding data in a Redis storage.
+    """
+
+    def __init__(self) -> None:
+        """Initializes Cache class instance.
+        """
         self._redis = redis.Redis()
-        self._redis.flushdb()
-        self.call_count = 0
+        self._redis.flushdb(True)
 
-    def total_calls(self):
-        """return the call count"""
-        return self.call_count
-
+    @call_history
+    @count_calls
     def store(self, data: Union[str, bytes, int, float]) -> str:
-        """method that takes a data argument and returns a string"""
-        self.call_count += 1
+        """Adds a value in a Redis returning the storage key.
+        """
+        storage_key = str(uuid.uuid4())
+        self._redis.set(storage_key, data)
+        return storage_key
 
-        key = str(uuid.uuid4())
-        self._redis.set(key, data)
-        return key
+    def get(
+            self,
+            key: str,
+            fn: Callable = None,
+    ) -> Union[str, bytes, int, float]:
+        """Retrieves a value from a Redis storage.
+        """
+        stored_data = self._redis.get(key)
+        return fn(stored_data) if fn is not None else stored_data
 
-    def get(self, key: str, fn: Callable = None) -> Union[str, bytes, int, float, None]:
+    def get_str(self, key: str) -> str:
+        """Retrieves string from a Redis storage.
         """
-             The callable will be used to convert the data back to the desired form
-        """
-        data = self._redis.get(key)
+        return self.get(key, lambda x: x.decode('utf-8'))
 
-        if data is not None and fn is not None:
-            data = fn(data)
-        return data
-
-    def get_int(self):
+    def get_int(self, key: str) -> int:
+        """Retrieves an integer from a Redis storage.
         """
-            automatically parametrize Cache.get with the correct conversion fn
-        """
-        return self.get(key, fn = lambda x: int(x) if x is not None else None)
-
-    def get_str(self):
-        """
-            automatically parametrize Cache.get with the correct conversion fn
-        """
-        return self.get(key, fn = lambda x: x.decode('utf-8'))
+        return self.get(key, lambda x: int(x))
